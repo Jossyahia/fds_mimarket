@@ -3,7 +3,7 @@ export const categories = [
   "Food",
   "Fashion",
   "Electronics",
-  "Grocery",
+  "Groceries",
   "Supliments",
   "Chops",
   "Kitchen",
