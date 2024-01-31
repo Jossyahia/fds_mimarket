@@ -5,20 +5,20 @@ export const GET = async (req, { params: { category } }) => {
   try {
     await connectToDB();
 
-    let workList;
-
+    // Build the query based on the category parameter
     const query = category !== "All" ? { category } : {};
 
-    workList = await Work.find(query)
+    // Retrieve the work list with lean option for improved performance
+    const workList = await Work.find(query)
       .populate({
         path: "creator",
-        select: "name", // select only necessary fields to reduce data transfer
+        select: "name", // Select only necessary fields to reduce data transfer
       })
       .lean();
 
     return new Response(JSON.stringify(workList), { status: 200 });
-  } catch (err) {
-    console.error("Failed to fetch Work List", err);
+  } catch (error) {
+    console.error("Failed to fetch Work List", error);
     return new Response("Failed to fetch Work List", { status: 500 });
   }
 };

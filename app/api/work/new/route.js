@@ -4,18 +4,45 @@ import Work from "@models/Work";
 import { createClient } from "@supabase/supabase-js";
 import uniqid from "uniqid";
 
+async function uploadPhotoToSupabase(bucket, photo) {
+  const ext = photo.name.split(".").pop();
+  const newPhotoName = uniqid() + "." + ext;
+
+  // Convert it to a Buffer
+  const bytes = await photo.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  // Create Supabase client
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  // Upload file with proper content type
+  const { data: uploadResult, error } = await supabase.storage
+    .from(bucket)
+    .upload(newPhotoName, buffer, {
+      contentType: photo.type, // Specify the content type based on the original file type
+    });
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  const link = `https://frsmcjzgunhzcsxffmyj.supabase.co/storage/v1/object/public/${bucket}/${newPhotoName}`;
+  console.log(link);
+
+  return link;
+}
+
 export async function POST(req) {
   try {
     /* Connect to MongoDB */
     await connectToDB();
 
     const data = await req.formData();
-
-    // Create Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    const bucket = "fastfastfood";
 
     /* Extract info from the data */
     const creator = data.get("creator");
@@ -26,39 +53,11 @@ export async function POST(req) {
 
     /* Get an array of uploaded photos */
     const photos = data.getAll("workPhotoPaths");
-    const bucket = "fastfastfood";
     const workPhotoPaths = [];
 
     /* Process and store each photo */
     for (const photo of photos) {
-      const ext = photo.name.split(".").pop();
-      const newphotosName = uniqid() + "." + ext;
-
-      // Convert it to a Buffer
-      const bytes = await photo.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Define the destination path for the uploaded file
-      const uploadPath = `${newphotosName}`;
-
-      // Upload file with proper content type
-      const { data: uploadResult, error } = await supabase.storage
-        .from(bucket)
-        .upload(uploadPath, buffer, {
-          contentType: photo.type, // Specify the content type based on the original file type
-        });
-
-      if (error) {
-        console.error(error);
-        return new Response(JSON.stringify({ error }), { status: 500 });
-      }
-
-      const link =
-        "https://frsmcjzgunhzcsxffmyj.supabase.co/storage/v1/object/public/" +
-        bucket +
-        "/" +
-        newphotosName;
-      console.log(link);
+      const link = await uploadPhotoToSupabase(bucket, photo);
       workPhotoPaths.push(link);
     }
 

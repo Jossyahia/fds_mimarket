@@ -2,7 +2,6 @@ import { connectToDB } from "@mongodb/database";
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-
 import User from "@models/User";
 import { compare } from "bcryptjs";
 
@@ -22,23 +21,29 @@ const handler = NextAuth({
     CredentialsProvider({
       name: "Credentials",
       async authorize(credentials, req) {
-        await connectToDB();
+        try {
+          await connectToDB();
 
-        /* Check if the user exists */
-        const user = await User.findOne({ email: credentials.email });
+          const user = await User.findOne({ email: credentials.email });
 
-        if (!user) {
-          throw new Error("Invalid Email or Password");
+          if (!user) {
+            throw new Error("User not found");
+          }
+
+          const isMatch = await compare(credentials.password, user.password);
+
+          if (!isMatch) {
+            throw new Error("Incorrect password");
+          }
+
+          return user;
+        } catch (error) {
+          console.error(
+            "Error during credential authorization:",
+            error.message
+          );
+          return Promise.reject(new Error("Authentication failed"));
         }
-
-        /* Compare password */
-        const isMatch = await compare(credentials.password, user.password);
-
-        if (!isMatch) {
-          throw new Error("Invalid Email or Password");
-        }
-
-        return user;
       },
     }),
   ],
@@ -47,20 +52,24 @@ const handler = NextAuth({
 
   callbacks: {
     async session({ session }) {
-      const sessionUser = await User.findOne({ email: session.user.email });
-      session.user.id = sessionUser._id.toString();
-
-      session.user = { ...session.user, ...sessionUser._doc }
-            
+      try {
+        const sessionUser = await User.findOne({ email: session.user.email });
+        session.user.id = sessionUser._id.toString();
+        session.user = { ...session.user, ...sessionUser._doc };
+      } catch (error) {
+        console.error(
+          "Error fetching user during session callback:",
+          error.message
+        );
+      }
       return session;
     },
 
     async signIn({ account, profile }) {
-      if (account.provider === "google") {
-        try {
+      try {
+        if (account.provider === "google") {
           await connectToDB();
 
-          /* Check is the user exist */
           let user = await User.findOne({ email: profile.email });
 
           if (!user) {
@@ -76,12 +85,11 @@ const handler = NextAuth({
           }
 
           return user;
-        } catch (err) {
-          console.log("Error checking if user exists: ", err.message);
         }
+      } catch (error) {
+        console.error("Error during signIn callback:", error.message);
+        return Promise.reject(new Error("Authentication failed"));
       }
-
-      return true
     },
   },
 });

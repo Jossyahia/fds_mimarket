@@ -6,50 +6,53 @@ import Navbar from '@components/Navbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
-const CreateWork = () => {
-  const { data: session } = useSession()
+// ... Other imports ...
 
-  const router = useRouter()
+const CreateWork = () => {
+  const { data: session } = useSession();
+  const router = useRouter();
 
   const [work, setWork] = useState({
-    creator: "",
-    category: "",
-    title: "",
-    description: "",
-    price: "",
-    photos: []
-  })
-
-  if (session) {
-    work.creator = session?.user?._id
-  }
+    creator: session?.user?._id || "",
+    category: null,
+    title: null,
+    description: null,
+    price: null,
+    photos: [],
+  });
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     try {
-      const newWorkForm = new FormData()
+      const newWorkForm = new FormData();
 
-      for (var key in work) {
-        newWorkForm.append(key, work[key])
+      for (const [key, value] of Object.entries(work)) {
+        // Exclude properties with null or undefined values
+        if (value !== null && value !== undefined) {
+          newWorkForm.append(key, value);
+        }
       }
 
       work.photos.forEach((photo) => {
-        newWorkForm.append("workPhotoPaths", photo)
-      })
+        newWorkForm.append("workPhotoPaths", photo);
+      });
 
       const response = await fetch("/api/work/new", {
         method: "POST",
-        body: newWorkForm
-      })
+        body: newWorkForm,
+      });
 
       if (response.ok) {
-        router.push(`/shop?id=${session?.user?._id}`)
+        router.push(`/shop?id=${session?.user?._id}`);
+      } else {
+        // Handle non-ok responses
+        console.error("Failed to create work:", response.statusText);
       }
-    } catch (err) {
-      console.log("Publish Work failed", err.message)
+    } catch (error) {
+      console.error("Publish Work failed", error.message);
     }
-  }
+  };
 
   return (
     <>
@@ -61,7 +64,7 @@ const CreateWork = () => {
         handleSubmit={handleSubmit}
       />
     </>
-  )
-}
+  );
+};
 
-export default CreateWork
+export default CreateWork;
