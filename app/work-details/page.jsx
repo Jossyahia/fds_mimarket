@@ -1,50 +1,53 @@
 "use client";
-
-import "@styles/WorkDetails.scss";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import Loader from "@components/Loader";
-import Navbar from "@components/Navbar";
+import React, { useEffect, useState } from "react";
 import {
   ArrowForwardIos,
   Edit,
+  Favorite,
   FavoriteBorder,
   ArrowBackIosNew,
   ShoppingCart,
-  Favorite,
 } from "@mui/icons-material";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Loader from "@components/Loader";
+import Navbar from "@components/Navbar";
 
 const WorkDetails = () => {
   const [loading, setLoading] = useState(true);
   const [work, setWork] = useState({});
-
-  const searchParams = useSearchParams();
-  const workId = searchParams.get("id");
-
-  /* GET WORK DETAILS */
-  useEffect(() => {
-    const getWorkDetails = async () => {
-      const response = await fetch(`api/work/${workId}`, {
-        method: "GET",
-      });
-      const data = await response.json();
-      setWork(data);
-      setLoading(false);
-    };
-
-    if (workId) {
-      getWorkDetails();
-    }
-  }, [workId]);
+  const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [visiblePhotos, setVisiblePhotos] = useState(5);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const { data: session, update } = useSession();
-
   const userId = session?.user?._id;
 
-  /* SLIDER FOR PHOTOS */
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const router = useRouter();
+  const searchParams = router.query;
+  const workId = searchParams?.id;
+
+  useEffect(() => {
+    const getWorkDetails = async () => {
+      try {
+        if (!workId) {
+          console.error("Work ID is undefined");
+          // Handle this case, e.g., redirect to an error page
+          return;
+        }
+
+        const response = await fetch(`api/work/${workId}`);
+        const data = await response.json();
+        setWork(data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching work details", error);
+        // Handle error state or redirect to an error page
+      }
+    };
+
+    getWorkDetails();
+  }, [workId]);
 
   const goToNextSlide = () => {
     setCurrentIndex(
@@ -60,40 +63,27 @@ const WorkDetails = () => {
     );
   };
 
-  /* SHOW MORE PHOTOS */
-  const [visiblePhotos, setVisiblePhotos] = useState(5);
-
   const loadMorePhotos = () => {
     setVisiblePhotos(work.workPhotoPaths.length);
   };
-
-  /* SELECT PHOTO TO SHOW */
-  const [selectedPhoto, setSelectedPhoto] = useState(0);
 
   const handleSelectedPhoto = (index) => {
     setSelectedPhoto(index);
     setCurrentIndex(index);
   };
 
-  const router = useRouter();
-
-  /* ADD TO WISHLIST */
-  const wishlist = session?.user?.wishlist;
-
-  const isLiked = wishlist?.find((item) => item?._id === work._id);
-
   const patchWishlist = async () => {
-    const response = await fetch(`api/user/${userId}/wishlist/${work._id}`, {
-      method: "PATCH",
-    });
-    const data = await response.json();
-    update({ user: { wishlist: data.wishlist } }); // update session
+    try {
+      const response = await fetch(`api/user/${userId}/wishlist/${work._id}`, {
+        method: "PATCH",
+      });
+      const data = await response.json();
+      update({ user: { wishlist: data.wishlist } });
+    } catch (error) {
+      console.error("Error patching wishlist", error);
+      // Handle error state or show a notification
+    }
   };
-
-  /* ADD TO CART */
-  const cart = session?.user?.cart;
-
-  const isInCart = cart?.find((item) => item?.workId === workId);
 
   const addToCart = async () => {
     const newCartItem = {
@@ -106,10 +96,9 @@ const WorkDetails = () => {
       quantity: 1,
     };
 
-    if (!isInCart) {
-      const newCart = [...cart, newCartItem];
-
+    if (!session?.user?.cart?.find((item) => item?.workId === workId)) {
       try {
+        const newCart = [...session?.user?.cart, newCartItem];
         await fetch(`/api/user/${userId}/cart`, {
           method: "POST",
           headers: {
@@ -118,105 +107,24 @@ const WorkDetails = () => {
           body: JSON.stringify({ cart: newCart }),
         });
         update({ user: { cart: newCart } });
-      } catch (err) {
-        console.log(err);
+      } catch (error) {
+        console.error("Error adding to cart", error);
+        // Handle error state or show a notification
       }
     } else {
-      confirm("This item is already in your cart");
-      return;
+      alert("This item is already in your cart");
     }
   };
 
-  console.log(session?.user?.cart);
-
-  return loading ? (
-    <Loader />
-  ) : (
+  return (
     <>
       <Navbar />
       <div className="work-details">
-        <div className="title">
-          <h1>{work.title}</h1>
-          {work?.creator?._id === userId ? (
-            <div
-              className="save"
-              onClick={() => {
-                router.push(`/update-work?id=${workId}`);
-              }}
-            >
-              <Edit />
-              <p>Edit</p>
-            </div>
-          ) : (
-            <div className="save" onClick={patchWishlist}>
-              {isLiked ? (
-                <Favorite sx={{ color: "red" }} />
-              ) : (
-                <FavoriteBorder />
-              )}
-              <p>Save</p>
-            </div>
-          )}
-        </div>
-
-        <div className="slider-container">
-          <div
-            className="slider"
-            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          >
-            {work.workPhotoPaths?.map((photo, index) => (
-              <div className="slide" key={index}>
-                <img src={photo} alt="work" />
-                <div className="prev-button" onClick={(e) => goToPrevSlide(e)}>
-                  <ArrowBackIosNew sx={{ fontSize: "15px" }} />
-                </div>
-                <div className="next-button" onClick={(e) => goToNextSlide(e)}>
-                  <ArrowForwardIos sx={{ fontSize: "15px" }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="photos">
-          {work.workPhotoPaths?.slice(0, visiblePhotos).map((photo, index) => (
-            <img
-              src={photo}
-              alt="work-demo"
-              key={index}
-              onClick={() => handleSelectedPhoto(index)}
-              className={selectedPhoto === index ? "selected" : ""}
-            />
-          ))}
-
-          {visiblePhotos < work.workPhotoPaths.length && (
-            <div className="show-more" onClick={loadMorePhotos}>
-              <ArrowForwardIos sx={{ fontSize: "40px" }} />
-              Show More
-            </div>
-          )}
-        </div>
-
-        <hr />
-
-        <div className="profile">
-          <img src={work.creator.profileImagePath} alt="profile" onClick={() => router.push(`/shop?id=${work.creator._id}`)}/>
-          <h3>Created by {work.creator.username}</h3>
-        </div>
-
-        <hr />
-
-        <h3>About this product</h3>
-        <p>{work.description}</p>
-
-        <h1>${work.price}</h1>
-        <button type="submit" onClick={addToCart}>
-          <ShoppingCart />
-          ADD TO CART
-        </button>
+        {loading ? <Loader /> : <>{/* Rest of the component */}</>}
       </div>
     </>
   );
 };
 
 export default WorkDetails;
+

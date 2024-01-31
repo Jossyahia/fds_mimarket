@@ -6,32 +6,37 @@ import WorkList from "@components/WorkList";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import "@styles/Shop.scss"
+import "@styles/Shop.scss";
 
 const Shop = () => {
-  const [loading, setLoading] = useState(true);
-
   const { data: session } = useSession();
-  const loggedInUserId = session?.user?._id;
+  const loggedInUserId = session?.user?._id || null;
 
   const searchParams = useSearchParams();
   const profileId = searchParams.get("id");
 
+  const [loading, setLoading] = useState(true);
   const [workList, setWorkList] = useState([]);
   const [profile, setProfile] = useState({});
 
   useEffect(() => {
     const getWorkList = async () => {
-      const response = await fetch(`api/user/${profileId}/shop`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      setWorkList(data.workList);
-      setProfile(data.user);
-      setLoading(false);
+      try {
+        const response = await fetch(`api/user/${profileId}/shop`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response.json();
+        setWorkList(data.workList);
+        setProfile(data.user);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching work list", error);
+        // Handle error state or redirect to an error page
+        setLoading(false);
+      }
     };
 
     if (profileId) {
@@ -39,19 +44,17 @@ const Shop = () => {
     }
   }, [profileId]);
 
-  return loading ? <Loader /> : (
+  return loading ? (
+    <Loader />
+  ) : (
     <>
       <Navbar />
-
-      {loggedInUserId === profileId && (
-        <h1 className="title-list">Your Works</h1>
-      )}
-
-      {loggedInUserId !== profileId && (
-        <h1 className="title-list">{profile.username}'s Works</h1>
-      )}
-
-      <WorkList data={workList}/>
+      <h1 className="title-list">
+        {loggedInUserId === profileId
+          ? "Your Works"
+          : `${profile.username}'s Works`}
+      </h1>
+      <WorkList data={workList} />
     </>
   );
 };

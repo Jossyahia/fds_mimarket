@@ -1,46 +1,53 @@
-"use client"
+"use client";
 
-import Loader from '@components/Loader'
-import Navbar from '@components/Navbar'
-import WorkList from '@components/WorkList'
-import { useParams } from 'next/navigation'
-import React, { useState, useEffect } from 'react'
-import "styles/Search.scss"
+import Loader from "@components/Loader";
+import Navbar from "@components/Navbar";
+import WorkList from "@components/WorkList";
+import { useParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import "@styles/Search.scss";
 
 const SearchPage = () => {
-  const { query } = useParams()
+  const { query } = useParams();
 
-  const [loading, setLoading] = useState(true)
-
-  const [workList, setWorkList] = useState([])
+  const [loading, setLoading] = useState(true);
+  const [workList, setWorkList] = useState([]);
 
   const getWorkList = async () => {
     try {
       const response = await fetch(`/api/work/search/${query}`, {
-        method: 'GET',
-      })
+        method: "GET",
+      });
 
-      const data = await response.json()
-      setWorkList(data)
-      setLoading(false)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data: ${response.statusText}`);
+      }
+
+      const { data } = await response.json();
+      setWorkList(data);
     } catch (err) {
-      console.log(err)
+      console.error(err);
+      // Handle error state, display an error message, or redirect to an error page
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    getWorkList()
-  }, [query])
+    getWorkList();
+  }, [query]);
 
-  return loading ? <Loader /> : (
+  return (
     <>
       <Navbar />
 
-      <h1 className='title-list'>{query} result(s)</h1>
+      <div className="search-page">
+        <h1 className="title-list">{query} result(s)</h1>
 
-      <WorkList data={workList} />
+        {loading ? <Loader /> : <WorkList data={workList} />}
+      </div>
     </>
-  )
-}
+  );
+};
 
-export default SearchPage
+export default SearchPage;

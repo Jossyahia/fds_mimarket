@@ -1,4 +1,6 @@
+
 import React from "react";
+import PropTypes from "prop-types";
 import { categories } from "@data";
 import { IoIosImages } from "react-icons/io";
 import { BiTrash } from "react-icons/bi";
@@ -36,7 +38,6 @@ const Form = ({ type, work, setWork, handleSubmit }) => {
     <div className="form">
       <h1>{type} Your Work</h1>
       <form onSubmit={handleSubmit}>
-        <h3>Which of these categories best describes your work?</h3>
         <div className="category-list">
           {categories?.map((item, index) => (
             <p
@@ -49,25 +50,19 @@ const Form = ({ type, work, setWork, handleSubmit }) => {
           ))}
         </div>
 
-        <h3>Add some photos of your work</h3>
         <div className="photos">
           {work.photos.length < 1 && (
-            <>
+            <label htmlFor="image" className="alone">
+              <IoIosImages />
+              <p>Upload from your device</p>
               <input
                 id="image"
                 type="file"
-                style={{ display: "none" }}
                 accept="image/*"
                 onChange={handleUploadPhotos}
                 multiple
               />
-              <label htmlFor="image" className="alone">
-                <div className="icon">
-                  <IoIosImages />
-                </div>
-                <p>Upload from your device</p>
-              </label>
-            </>
+            </label>
           )}
 
           {work.photos.length > 0 && (
@@ -90,62 +85,71 @@ const Form = ({ type, work, setWork, handleSubmit }) => {
                   </button>
                 </div>
               ))}
-              <input
-                id="image"
-                type="file"
-                style={{ display: "none" }}
-                accept="image/*"
-                onChange={handleUploadPhotos}
-                multiple
-              />
               <label htmlFor="image" className="together">
-                <div className="icon">
-                  <IoIosImages />
-                </div>
+                <IoIosImages />
                 <p>Upload from your device</p>
+                <input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUploadPhotos}
+                  multiple
+                />
               </label>
             </>
           )}
         </div>
 
-        <h3>What makes your work attractive?</h3>
         <div className="description">
-          <p>Title</p>
-          <input
-            type="text"
-            placeholder="Title"
-            onChange={handleChange}
-            name="title"
-            value={work.title}
-            required
-          />
-          <p>Description</p>
-          <textarea
-            type="text"
-            placeholder="Description"
-            onChange={handleChange}
-            name="description"
-            value={work.description}
-            required
-          />
-          <p>Now, set your PRICE</p>
-          <span>$</span>
-          <input
-            type="number"
-            placeholder="Price"
-            onChange={handleChange}
-            name="price"
-            value={work.price}
-            required
-            className="price"
-          />
+          <label>
+            <p>Title</p>
+            <input
+              type="text"
+              placeholder="Title"
+              onChange={handleChange}
+              name="title"
+              value={work.title}
+              required
+            />
+          </label>
+          <label>
+            <p>Description</p>
+            <textarea
+              type="text"
+              placeholder="Description"
+              onChange={handleChange}
+              name="description"
+              value={work.description}
+              required
+            />
+          </label>
+          <label>
+            <p>Now, set your PRICE</p>
+            <span>#</span>
+            <input
+              type="number"
+              placeholder="Price"
+              onChange={handleChange}
+              name="price"
+              value={work.price}
+              required
+              className="price"
+            />
+          </label>
         </div>
-        <button className="submit_btn" type="submit">
+        <button className="submit-btn" type="submit">
           PUBLISH YOUR WORK
         </button>
       </form>
     </div>
   );
+};
+
+Form.propTypes = {
+  type: PropTypes.string.isRequired,
+  work: PropTypes.object.isRequired,
+  setWork: PropTypes.func.isRequired,
+  handleSubmit: PropTypes.func.isRequired,
 };
 
 export default Form;

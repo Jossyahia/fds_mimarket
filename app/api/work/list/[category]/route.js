@@ -1,23 +1,24 @@
 import { connectToDB } from "@mongodb/database";
 import Work from "@models/Work";
 
-export const GET = async (req, { params }) => {
+export const GET = async (req, { params: { category } }) => {
   try {
-    await connectToDB()
+    await connectToDB();
 
-    const { category } = params
+    let workList;
 
-    let workList
+    const query = category !== "All" ? { category } : {};
 
-    if (category !== "All") {
-      workList = await Work.find ({ category }).populate("creator")
-    } else {
-      workList = await Work.find().populate("creator")
-    }
+    workList = await Work.find(query)
+      .populate({
+        path: "creator",
+        select: "name", // select only necessary fields to reduce data transfer
+      })
+      .lean();
 
-    return new Response(JSON.stringify(workList), { status: 200 })
+    return new Response(JSON.stringify(workList), { status: 200 });
   } catch (err) {
-    console.log(err)
-    return new Response("Failed to fetch Work List", { status: 500 })
+    console.error("Failed to fetch Work List", err);
+    return new Response("Failed to fetch Work List", { status: 500 });
   }
-}
+};

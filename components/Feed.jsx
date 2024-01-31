@@ -1,6 +1,6 @@
 "use client";
 import { categories } from "@data";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "@styles/Categories.scss";
 import Loader from "./Loader";
 import WorkList from "./WorkList";
@@ -10,16 +10,25 @@ export default function Feed() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [workList, setWorkList] = useState([]);
 
-  useEffect(() => {
-    getWorkList();
+  const getWorkList = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/work/list/${selectedCategory}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching data: ${response.status}`);
+      }
+      const data = await response.json();
+      setWorkList(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      // Handle error state or display a user-friendly message
+      setLoading(false);
+    }
   }, [selectedCategory]);
 
-  const getWorkList = async () => {
-    const response = await fetch(`/api/work/list/${selectedCategory}`);
-    const data = await response.json();
-    setWorkList(data);
-    setLoading(false);
-  };
+  useEffect(() => {
+    getWorkList();
+  }, [getWorkList]);
 
   return (
     <>
@@ -35,7 +44,9 @@ export default function Feed() {
         ))}
       </div>
 
-      {loading ? <Loader /> : <WorkList data={workList} />}
+      <div className="content">
+        {loading ? <Loader /> : <WorkList data={workList} />}
+      </div>
     </>
   );
 }
