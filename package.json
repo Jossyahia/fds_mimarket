@@ -29,6 +29,7 @@
     "stripe": "^14.8.0"
   },
   "devDependencies": {
-    "cssnano": "^6.0.3"
+    "cssnano": "^6.0.3",
+    "terser-webpack-plugin": "^5.3.10"
   }
 }
