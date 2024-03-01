@@ -12,7 +12,7 @@
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.19",
-    "@mui/material": "^5.14.19",
+    "@mui/material": "^5.15.9",
     "@stripe/stripe-js": "^2.2.1",
     "bcryptjs": "^2.4.3",
     "mongodb": "^6.3.0",
